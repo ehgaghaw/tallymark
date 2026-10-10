@@ -1,28 +1,37 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { STRIKES, TIERS, fmt, short } from '../lib/ledger';
-import { PageHead } from '../components/ui';
+import { BANDS, band, fmt, short } from '../lib/ledger';
+import { useStore } from '../lib/store';
+import { PageHead, RollIcon, TallyIcon } from '../components/ui';
+
+type Row = { key: string; kind: 'strike' | 'roll'; text: React.ReactNode; icon: React.ReactNode; slot: number };
 
 // Replays the preview ledger as a live feed, one entry every couple of seconds.
 export default function Live() {
-  const [i, setI] = useState(24);
-  useEffect(() => { const id = setInterval(() => setI((x) => (x >= STRIKES.length ? 24 : x + 1)), 2200); return () => clearInterval(id); }, []);
-  const feed = STRIKES.slice(Math.max(0, i - 24), i).reverse();
+  const { strikes, feed } = useStore();
+  const all: Row[] = [];
+  strikes.forEach((s) => s.history.forEach((h, i) => all.push({ key: `s${s.n}-${i}`, kind: 'strike', slot: h.slot, icon: <TallyIcon rank={s.rank} part={s.surviving} whole={s.issued} />, text: <><Link to={`/strike/${s.n}`}><b>Strike #{s.n}</b></Link> <span className="muted">{BANDS[band(s.rank)]}</span> &middot; {h.text}</> })));
+  feed.forEach((e, i) => all.push({ key: `r${i}`, kind: 'roll', slot: e.slot, icon: <RollIcon points={e.points} name={e.name} />, text: <><Link to={`/wallet/${e.holder}`}>{short(e.holder)}</Link> rolled <b>{e.name}</b></> }));
+  all.sort((a, b) => a.slot - b.slot);
+  const [i, setI] = useState(40);
+  useEffect(() => { const id = setInterval(() => setI((x) => (x >= all.length ? 40 : x + 1)), 1800); return () => clearInterval(id); }, [all.length]);
+  const rows = all.slice(Math.max(0, i - 40), i).reverse();
   return (
     <>
-      <PageHead title="Live" sub="Strikes as they are cut, newest first. In preview this replays the demo ledger.">
+      <PageHead title="Live" sub="Every buy, melt, seal, sale and roll as it lands, newest first. In preview this replays the demo ledger." >
         <span className="u small nav-live"><i />Streaming</span>
       </PageHead>
-      <div className="table-scroll"><table className="table">
-        <thead><tr><th>Strike</th><th>Tier</th><th>Era</th><th>Holder</th><th className="num">Slot</th></tr></thead>
-        <tbody>{feed.map((s, k) => (
-          <tr key={s.n} className={`link t${s.tier}`} style={k === 0 ? { background: 'var(--soft)' } : undefined} onClick={() => (location.hash = `#/strike/${s.n}`)}>
-            <td><Link to={`/strike/${s.n}`}><b>#{s.n}</b></Link></td>
-            <td><i className="tier-dot" />{TIERS[s.tier].name}</td><td className="muted">{s.era}</td>
-            <td>{short(s.holder, 6)}</td><td className="num">{fmt(s.slot)}</td>
-          </tr>
-        ))}</tbody>
-      </table></div>
+      <section className="panel">
+        <ul className="feed">
+          {rows.map((r, k) => (
+            <li key={r.key} className={k === 0 ? 'feed-new' : ''}>
+              <span className="feed-icon">{r.icon}</span>
+              <span className="feed-text">{r.text}</span>
+              <span className="feed-link mono small muted">slot {fmt(r.slot)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
     </>
   );
 }

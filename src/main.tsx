@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { WalletProvider, useWallet, X_URL } from './lib/wallet';
+import { StoreProvider } from './lib/store';
 import ReactDOM from 'react-dom/client';
 import { HashRouter, NavLink, Route, Routes, Link, useLocation } from 'react-router-dom';
 import './styles.css';
+import './pages.css';
 import { PREVIEW } from './lib/ledger';
 import Overview from './pages/Overview';
 import Rules from './pages/Rules';
@@ -73,7 +75,7 @@ function ScrollTop() {
 function App() {
   return (
     <HashRouter>
-      <WalletProvider>
+      <WalletProvider><StoreProvider>
         <ScrollTop />
         <Header />
         <main className="container">
@@ -88,11 +90,12 @@ function App() {
             <Route path="/rolls" element={<Rolls />} />
             <Route path="/desk" element={<Desk />} />
             <Route path="/wallet" element={<Wallet />} />
+            <Route path="/wallet/:address" element={<Wallet />} />
             <Route path="*" element={<div className="page-head"><div><h1>Not on the ledger</h1><p className="page-sub">That page does not exist. <Link to="/strikes" className="u">Browse Strikes</Link></p></div></div>} />
           </Routes>
         </main>
         <Footer />
-      </WalletProvider>
+      </StoreProvider></WalletProvider>
     </HashRouter>
   );
 }
